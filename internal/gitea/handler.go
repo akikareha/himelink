@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -63,9 +64,30 @@ func handle(
 ) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	mode := chi.URLParam(r, "mode")
+	path := chi.URLParam(r, "*")
 
 	if !isValid(owner) || !isValid(repo) {
 		http.Error(w, "invalid repo name", 400)
+		return
+	}
+
+	if mode == "" {
+		http.Redirect(w, r, fmt.Sprintf(
+			"/%s/%s/%s/blob/README.md",
+			route.Path,
+			owner,
+			repo,
+		), http.StatusFound)
+		return
+	}
+
+	if strings.Contains(path, "..") {
+		http.Error(w, "invalid path", 500)
+		return
+	}
+	if strings.HasPrefix(path, "/") {
+		http.Error(w, "invalid path", 500)
 		return
 	}
 
@@ -85,10 +107,10 @@ func handle(
 		owner,
 		repo,
 		branch,
-		"README.md",
+		path,
 	)
 	if err != nil {
-		http.Error(w, "cannot fetch README.md: "+err.Error(), 500)
+		http.Error(w, "cannot fetch " + path + ": " + err.Error(), 500)
 		return
 	}
 
