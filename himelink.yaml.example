@@ -1,0 +1,16 @@
+app:
+  mode: "devel"
+  addr: ":8080"
+
+site:
+  base: "https://link.example.org/"
+  name: "HimeLink"
+  static: "./static"
+  card: "https://link.example.org/static/card.png"
+
+gitea:
+  api-base: "https://git.example.org"
+
+github:
+  api-base: "https://api.github.com"
+  raw-base: "https://raw.githubusercontent.com"
