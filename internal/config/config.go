@@ -7,6 +7,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Route struct {
+	Path     string `yaml:"path"`
+	Protocol string `yaml:"protocol"`
+	API      string `yaml:"api"`
+	Raw      string `yaml:"raw,omitempty"`
+}
+
 type Config struct {
 	App struct {
 		Mode string `yaml:"mode"`
@@ -20,14 +27,7 @@ type Config struct {
 		Card   string `yaml:"card"`
 	} `yaml:"site"`
 
-	Gitea struct {
-		ApiBase string `yaml:"api-base"`
-	} `yaml:"gitea"`
-
-	GitHub struct {
-		ApiBase string `yaml:"api-base"`
-		RawBase string `yaml:"raw-base"`
-	} `yaml:"github"`
+	Routes []Route `yaml:"routes"`
 }
 
 func Load(path string) *Config {

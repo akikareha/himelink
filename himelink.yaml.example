@@ -8,9 +8,12 @@ site:
   static: "./static"
   card: "https://link.example.org/static/card.png"
 
-gitea:
-  api-base: "https://git.example.org"
+routes:
+  - path: "code"
+    protocol: "gitea"
+    api: "https://git.example.org"
 
-github:
-  api-base: "https://api.github.com"
-  raw-base: "https://raw.githubusercontent.com"
+  - path: "github"
+    protocol: "github"
+    api: "https://api.github.com"
+    raw: "https://raw.githubusercontent.com"
