@@ -13,8 +13,8 @@ type RepoInfo struct {
 	ReadmeName  string
 	ReadmePath  string
 	URL         string
-	OwnerName string
-	OwnerPath string
+	OwnerName   string
+	OwnerPath   string
 }
 
 func RenderRepo(cfg *config.Config, w http.ResponseWriter, info RepoInfo) {

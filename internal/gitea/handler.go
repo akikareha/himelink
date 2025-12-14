@@ -138,8 +138,11 @@ func handlePath(
 	}
 
 	ext := filepath.Ext(path)
-	if ext == ".md" {
-		render.RenderMarkdown(cfg, w, raw)
+	filename := filepath.Base(path)
+	if ext == ".md" || ext == ".markdown" || ext == ".mdown" ||
+		ext == ".mkd" || ext == ".mkdn" || ext == ".mdwn" ||
+		ext == ".mdtxt" || ext == ".mdtext" {
+		render.RenderMarkdown(cfg, w, filename, raw)
 	} else {
 		http.Error(w, "unsupported extension "+ext, 500)
 		return

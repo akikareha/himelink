@@ -18,9 +18,9 @@
 
 <h1>{{.Title}}</h1>
 
-<p>
-Type: {{.Info.Type}}
-</p>
+<ul>
+<li>Type: {{.Info.Type}}</li>
+</ul>
 
 <h2>Repositories</h2>
 
@@ -33,7 +33,6 @@ Type: {{.Info.Type}}
 <dd>No repositories.</dd>
 {{end}}
 </ul>
-
 
 <p>
 Original: <a href="{{.Info.URL}}">{{.Info.URL}}</a>

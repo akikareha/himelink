@@ -7,7 +7,7 @@ import (
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 
 	"github.com/akikareha/himelink/internal/config"
 	"github.com/akikareha/himelink/internal/templates"
@@ -17,24 +17,30 @@ var md = goldmark.New(
 	goldmark.WithExtensions(
 		extension.GFM, // GitHub-like
 	),
-	goldmark.WithRendererOptions(
-		html.WithUnsafe(), // allow embedding HTML
-	),
 )
 
-func markdownToHTML(src []byte) ([]byte, error) {
+func markdownToHTML(filename string, src []byte) (string, []byte, error) {
+	reader := text.NewReader(src)
+
+	// Markdown -> AST
+	doc := md.Parser().Parse(reader)
+
+	title := extractTitle(filename, src, doc)
+
 	var buf bytes.Buffer
-	err := md.Convert(src, &buf)
+	err := md.Renderer().Render(&buf, src, doc)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	return buf.Bytes(), nil
+	return title, buf.Bytes(), nil
 }
 
-func RenderMarkdown(cfg *config.Config, w http.ResponseWriter, raw []byte) {
-	title := ExtractTitle(raw)
-
-	htmlBytes, err := markdownToHTML(raw)
+func RenderMarkdown(
+	cfg *config.Config, w http.ResponseWriter,
+	filename string,
+	raw []byte,
+) {
+	title, htmlBytes, err := markdownToHTML(filename, raw)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return

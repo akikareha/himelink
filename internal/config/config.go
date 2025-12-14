@@ -16,15 +16,12 @@ type Route struct {
 
 type Config struct {
 	App struct {
-		Mode string `yaml:"mode"`
 		Addr string `yaml:"addr"`
 	} `yaml:"app"`
 
 	Site struct {
-		Base   string `yaml:"base"`
 		Name   string `yaml:"name"`
 		Static string `yaml:"static"`
-		Card   string `yaml:"card"`
 	} `yaml:"site"`
 
 	Routes []Route `yaml:"routes"`

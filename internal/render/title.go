@@ -3,9 +3,7 @@ package render
 import (
 	"bytes"
 
-	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/text"
 )
 
 type Heading struct {
@@ -13,13 +11,7 @@ type Heading struct {
 	Text  string
 }
 
-func ExtractHeadings(src []byte) (headings []Heading) {
-	md := goldmark.New()
-	reader := text.NewReader(src)
-
-	// Markdown -> AST
-	doc := md.Parser().Parse(reader)
-
+func extractHeadings(src []byte, doc ast.Node) (headings []Heading) {
 	// scan AST
 	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		heading, ok := n.(*ast.Heading)
@@ -44,10 +36,10 @@ func ExtractHeadings(src []byte) (headings []Heading) {
 }
 
 // return top heading
-func ExtractTitle(src []byte) string {
-	headings := ExtractHeadings(src)
+func extractTitle(filename string, src []byte, doc ast.Node) string {
+	headings := extractHeadings(src, doc)
 	if len(headings) == 0 {
-		return ""
+		return filename
 	}
 
 	// find min heading level
