@@ -232,10 +232,13 @@ func handleRepo(
 	}
 
 	var readmePath string
+	var ownerPath string
 	if slash {
 		readmePath = "blob/" + readme.Path
+		ownerPath = ".."
 	} else {
 		readmePath = repo + "/blob/" + readme.Path
+		ownerPath = "."
 	}
 
 	repoInfo := render.RepoInfo{
@@ -244,6 +247,8 @@ func handleRepo(
 		ReadmeName:  readme.Name,
 		ReadmePath:  readmePath,
 		URL:         info.HtmlUrl,
+		OwnerName: owner,
+		OwnerPath: ownerPath,
 	}
 	render.RenderRepo(cfg, w, repoInfo)
 }
