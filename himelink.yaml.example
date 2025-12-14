@@ -17,3 +17,7 @@ routes:
     protocol: "github"
     api: "https://api.github.com"
     raw: "https://raw.githubusercontent.com"
+
+client:
+  user-agent: "HimeLink/0.0"
+  github-token: "(Your GitHub Token Here)"

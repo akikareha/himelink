@@ -15,20 +15,35 @@ import (
 	"github.com/akikareha/himelink/internal/render"
 )
 
+func request(cfg *config.Config, url string) (*http.Response, error) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+cfg.Client.GitHubToken)
+	req.Header.Set("User-Agent", cfg.Client.UserAgent)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	return client.Do(req)
+}
+
 func isValid(name string) bool {
 	return validName.MatchString(name)
 }
 
 type ownerInfo struct {
-	Login string `json:"login"`
+	Login   string `json:"login"`
 	HtmlUrl string `json:"html_url"`
-	Type string `json:"type"`
+	Type    string `json:"type"`
 }
 
-func fetchOwnerInfo(baseURL, owner string) (ownerInfo, error) {
+func fetchOwnerInfo(cfg *config.Config, baseURL, owner string) (ownerInfo, error) {
 	url := fmt.Sprintf("%s/users/%s", baseURL, owner)
 
-	resp, err := http.Get(url)
+	resp, err := request(cfg, url)
 	if err != nil {
 		return ownerInfo{}, err
 	}
@@ -43,11 +58,11 @@ func fetchOwnerInfo(baseURL, owner string) (ownerInfo, error) {
 }
 
 type repoItem struct {
-	Name string `json:"name"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
-func fetchRepoList(baseURL, owner string, organization bool) ([]repoItem, error) {
+func fetchRepoList(cfg *config.Config, baseURL, owner string, organization bool) ([]repoItem, error) {
 	var url string
 	if organization {
 		url = fmt.Sprintf("%s/orgs/%s/repos?per_page=100", baseURL, owner)
@@ -55,13 +70,13 @@ func fetchRepoList(baseURL, owner string, organization bool) ([]repoItem, error)
 		url = fmt.Sprintf("%s/users/%s/repos?per_page=100", baseURL, owner)
 	}
 
-	resp, err := http.Get(url)
+	resp, err := request(cfg, url)
 	if err != nil {
 		return []repoItem{}, err
 	}
 	defer resp.Body.Close()
 
-	var list []repoItem 
+	var list []repoItem
 	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
 		return []repoItem{}, err
 	}
@@ -71,15 +86,15 @@ func fetchRepoList(baseURL, owner string, organization bool) ([]repoItem, error)
 
 type repoInfo struct {
 	DefaultBranch string `json:"default_branch"`
-	Description string `json:"description"`
-	HtmlUrl string `json:"html_url"`
-	Name string `json:"name"`
+	Description   string `json:"description"`
+	HtmlUrl       string `json:"html_url"`
+	Name          string `json:"name"`
 }
 
-func fetchRepoInfo(baseURL, owner, repo string) (repoInfo, error) {
+func fetchRepoInfo(cfg *config.Config, baseURL, owner, repo string) (repoInfo, error) {
 	url := fmt.Sprintf("%s/repos/%s/%s", baseURL, owner, repo)
 
-	resp, err := http.Get(url)
+	resp, err := request(cfg, url)
 	if err != nil {
 		return repoInfo{}, err
 	}
@@ -98,10 +113,10 @@ type readmeInfo struct {
 	Path string `json:"path"`
 }
 
-func fetchReadmeInfo(baseURL, owner, repo string) (readmeInfo, error) {
+func fetchReadmeInfo(cfg *config.Config, baseURL, owner, repo string) (readmeInfo, error) {
 	url := fmt.Sprintf("%s/repos/%s/%s/readme", baseURL, owner, repo)
 
-	resp, err := http.Get(url)
+	resp, err := request(cfg, url)
 	if err != nil {
 		return readmeInfo{}, err
 	}
@@ -115,13 +130,13 @@ func fetchReadmeInfo(baseURL, owner, repo string) (readmeInfo, error) {
 	return info, nil
 }
 
-func fetchRaw(baseURL, owner, repo, branch, path string) ([]byte, error) {
+func fetchRaw(cfg *config.Config, baseURL, owner, repo, branch, path string) ([]byte, error) {
 	url := fmt.Sprintf(
 		"%s/%s/%s/%s/%s",
 		baseURL, owner, repo, branch, path,
 	)
 
-	resp, err := http.Get(url)
+	resp, err := request(cfg, url)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +161,7 @@ func handleOwner(
 		return
 	}
 
-	info, err := fetchOwnerInfo(route.API, owner)
+	info, err := fetchOwnerInfo(cfg, route.API, owner)
 	if err != nil {
 		http.Error(w, "cannot get owner info", 500)
 		return
@@ -156,28 +171,28 @@ func handleOwner(
 		http.Error(w, "invalid owner type", 500)
 		return
 	}
-	repoList, err := fetchRepoList(route.API, owner, info.Type == "Organization")
+	repoList, err := fetchRepoList(cfg, route.API, owner, info.Type == "Organization")
 
 	var repos []render.RepoInfo
 	for _, item := range repoList {
 		var url string
 		if slash {
-			url = item.Name;
+			url = item.Name
 		} else {
-			url = owner + "/" + item.Name;
+			url = owner + "/" + item.Name
 		}
 		ri := render.RepoInfo{
 			Description: item.Description,
-			Name: item.Name,
-			URL: url,
+			Name:        item.Name,
+			URL:         url,
 		}
 		repos = append(repos, ri)
 	}
 
 	ownerInfo := render.OwnerInfo{
 		Login: info.Login,
-		Type: info.Type,
-		URL: info.HtmlUrl,
+		Type:  info.Type,
+		URL:   info.HtmlUrl,
 		Repos: repos,
 	}
 	render.RenderOwner(cfg, w, ownerInfo)
@@ -204,13 +219,13 @@ func handleRepo(
 		return
 	}
 
-	info, err := fetchRepoInfo(route.API, owner, repo)
+	info, err := fetchRepoInfo(cfg, route.API, owner, repo)
 	if err != nil {
 		http.Error(w, "cannot get repo info", 500)
 		return
 	}
 
-	readme, err := fetchReadmeInfo(route.API, owner, repo)
+	readme, err := fetchReadmeInfo(cfg, route.API, owner, repo)
 	if err != nil {
 		http.Error(w, "cannot get readme info", 500)
 		return
@@ -225,10 +240,10 @@ func handleRepo(
 
 	repoInfo := render.RepoInfo{
 		Description: info.Description,
-		Name: info.Name,
-		ReadmeName: readme.Name,
-		ReadmePath: readmePath,
-		URL: info.HtmlUrl,
+		Name:        info.Name,
+		ReadmeName:  readme.Name,
+		ReadmePath:  readmePath,
+		URL:         info.HtmlUrl,
 	}
 	render.RenderRepo(cfg, w, repoInfo)
 }
@@ -268,7 +283,7 @@ func handlePath(
 		return
 	}
 
-	info, err := fetchRepoInfo(route.API, owner, repo)
+	info, err := fetchRepoInfo(cfg, route.API, owner, repo)
 	if err != nil {
 		http.Error(w, "cannot get repo info", 500)
 		return
@@ -280,6 +295,7 @@ func handlePath(
 	}
 
 	raw, err := fetchRaw(
+		cfg,
 		route.Raw,
 		owner,
 		repo,
@@ -295,7 +311,7 @@ func handlePath(
 	if ext == ".md" {
 		render.RenderMarkdown(cfg, w, raw)
 	} else {
-		http.Error(w, "unsupported extension " + ext, 500)
+		http.Error(w, "unsupported extension "+ext, 500)
 		return
 	}
 }

@@ -9,10 +9,10 @@ import (
 
 type RepoInfo struct {
 	Description string
-	Name string
-	ReadmeName string
-	ReadmePath string
-	URL string
+	Name        string
+	ReadmeName  string
+	ReadmePath  string
+	URL         string
 }
 
 func RenderRepo(cfg *config.Config, w http.ResponseWriter, info RepoInfo) {
@@ -21,10 +21,10 @@ func RenderRepo(cfg *config.Config, w http.ResponseWriter, info RepoInfo) {
 	tmpl.Execute(w, struct {
 		SiteName string
 		Title    string
-		Info RepoInfo
+		Info     RepoInfo
 	}{
 		SiteName: cfg.Site.Name,
 		Title:    info.Name,
-		Info: info,
+		Info:     info,
 	})
 }

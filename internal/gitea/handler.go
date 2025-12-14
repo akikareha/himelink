@@ -141,7 +141,7 @@ func handlePath(
 	if ext == ".md" {
 		render.RenderMarkdown(cfg, w, raw)
 	} else {
-		http.Error(w, "unsupported extension " + ext, 500)
+		http.Error(w, "unsupported extension "+ext, 500)
 		return
 	}
 }

@@ -28,6 +28,11 @@ type Config struct {
 	} `yaml:"site"`
 
 	Routes []Route `yaml:"routes"`
+
+	Client struct {
+		UserAgent   string `yaml:"user-agent"`
+		GitHubToken string `yaml:"github-token"`
+	}
 }
 
 func Load(path string) *Config {
