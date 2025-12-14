@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -56,7 +57,35 @@ func isValid(name string) bool {
 	return validName.MatchString(name)
 }
 
-func handle(
+func handleRepo(
+	cfg *config.Config,
+	route config.Route,
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	owner := chi.URLParam(r, "owner")
+	repo := chi.URLParam(r, "repo")
+
+	if !isValid(owner) || !isValid(repo) {
+		http.Error(w, "invalid repo name", 400)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf(
+		"/%s/%s/%s/blob/README.md",
+		route.Path,
+		owner,
+		repo,
+	), http.StatusFound)
+}
+
+func RepoHandler(cfg *config.Config, route config.Route) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handleRepo(cfg, route, w, r)
+	}
+}
+
+func handlePath(
 	cfg *config.Config,
 	route config.Route,
 	w http.ResponseWriter,
@@ -71,14 +100,8 @@ func handle(
 		http.Error(w, "invalid repo name", 400)
 		return
 	}
-
-	if mode == "" {
-		http.Redirect(w, r, fmt.Sprintf(
-			"/%s/%s/%s/blob/README.md",
-			route.Path,
-			owner,
-			repo,
-		), http.StatusFound)
+	if mode != "blob" {
+		http.Error(w, "invalid mode", 400)
 		return
 	}
 
@@ -93,13 +116,13 @@ func handle(
 
 	info, err := fetchRepoInfo(route.API, owner, repo)
 	if err != nil {
-		http.Error(w, "cannot get repo info: "+err.Error(), 500)
+		http.Error(w, "cannot get repo info", 500)
 		return
 	}
-
 	branch := info.DefaultBranch
 	if branch == "" {
-		branch = "main"
+		http.Error(w, "invalid branch", 500)
+		return
 	}
 
 	raw, err := fetchRaw(
@@ -110,15 +133,21 @@ func handle(
 		path,
 	)
 	if err != nil {
-		http.Error(w, "cannot fetch " + path + ": " + err.Error(), 500)
+		http.Error(w, "cannot fetch", 500)
 		return
 	}
 
-	render.RenderMarkdown(cfg, w, raw)
+	ext := filepath.Ext(path)
+	if ext == ".md" {
+		render.RenderMarkdown(cfg, w, raw)
+	} else {
+		http.Error(w, "unsupported extension " + ext, 500)
+		return
+	}
 }
 
-func Handler(cfg *config.Config, route config.Route) http.HandlerFunc {
+func PathHandler(cfg *config.Config, route config.Route) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handle(cfg, route, w, r)
+		handlePath(cfg, route, w, r)
 	}
 }

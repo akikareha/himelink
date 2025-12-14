@@ -14,14 +14,14 @@ func RegisterRoutes(cfg *config.Config, r chi.Router) {
 	for _, route := range cfg.Routes {
 		if route.Protocol == "gitea" {
 			path := "/" + route.Path + "/{owner}/{repo}"
-			r.Get(path, gitea.Handler(cfg, route))
-			r.Get(path+"/", gitea.Handler(cfg, route))
-			r.Get(path+"/{mode}/*", gitea.Handler(cfg, route))
+			r.Get(path, gitea.RepoHandler(cfg, route))
+			r.Get(path+"/", gitea.RepoHandler(cfg, route))
+			r.Get(path+"/{mode}/*", gitea.PathHandler(cfg, route))
 		} else if route.Protocol == "github" {
 			path := "/" + route.Path + "/{owner}/{repo}"
-			r.Get(path, github.Handler(cfg, route))
-			r.Get(path+"/", github.Handler(cfg, route))
-			r.Get(path+"/{mode}/*", github.Handler(cfg, route))
+			r.Get(path, github.RepoHandler(cfg, route, false))
+			r.Get(path+"/", github.RepoHandler(cfg, route, true))
+			r.Get(path+"/{mode}/*", github.PathHandler(cfg, route))
 		}
 	}
 
