@@ -19,6 +19,56 @@ func isValid(name string) bool {
 	return validName.MatchString(name)
 }
 
+type ownerInfo struct {
+	Login string `json:"login"`
+	HtmlUrl string `json:"html_url"`
+	Type string `json:"type"`
+}
+
+func fetchOwnerInfo(baseURL, owner string) (ownerInfo, error) {
+	url := fmt.Sprintf("%s/users/%s", baseURL, owner)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return ownerInfo{}, err
+	}
+	defer resp.Body.Close()
+
+	var info ownerInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return ownerInfo{}, err
+	}
+
+	return info, nil
+}
+
+type repoItem struct {
+	Name string `json:"name"`
+	Description string `json:"description"`
+}
+
+func fetchRepoList(baseURL, owner string, organization bool) ([]repoItem, error) {
+	var url string
+	if organization {
+		url = fmt.Sprintf("%s/orgs/%s/repos?per_page=100", baseURL, owner)
+	} else {
+		url = fmt.Sprintf("%s/users/%s/repos?per_page=100", baseURL, owner)
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return []repoItem{}, err
+	}
+	defer resp.Body.Close()
+
+	var list []repoItem 
+	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+		return []repoItem{}, err
+	}
+
+	return list, nil
+}
+
 type repoInfo struct {
 	DefaultBranch string `json:"default_branch"`
 	Description string `json:"description"`
@@ -81,6 +131,63 @@ func fetchRaw(baseURL, owner, repo, branch, path string) ([]byte, error) {
 }
 
 var validName = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+
+func handleOwner(
+	cfg *config.Config,
+	route config.Route,
+	w http.ResponseWriter,
+	r *http.Request,
+	slash bool,
+) {
+	owner := chi.URLParam(r, "owner")
+
+	if !isValid(owner) {
+		http.Error(w, "invalid owner name", 400)
+		return
+	}
+
+	info, err := fetchOwnerInfo(route.API, owner)
+	if err != nil {
+		http.Error(w, "cannot get owner info", 500)
+		return
+	}
+
+	if info.Type != "User" && info.Type != "Organization" {
+		http.Error(w, "invalid owner type", 500)
+		return
+	}
+	repoList, err := fetchRepoList(route.API, owner, info.Type == "Organization")
+
+	var repos []render.RepoInfo
+	for _, item := range repoList {
+		var url string
+		if slash {
+			url = item.Name;
+		} else {
+			url = owner + "/" + item.Name;
+		}
+		ri := render.RepoInfo{
+			Description: item.Description,
+			Name: item.Name,
+			URL: url,
+		}
+		repos = append(repos, ri)
+	}
+
+	ownerInfo := render.OwnerInfo{
+		Login: info.Login,
+		Type: info.Type,
+		URL: info.HtmlUrl,
+		Repos: repos,
+	}
+	render.RenderOwner(cfg, w, ownerInfo)
+}
+
+func OwnerHandler(cfg *config.Config, route config.Route, slash bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handleOwner(cfg, route, w, r, slash)
+	}
+}
 
 func handleRepo(
 	cfg *config.Config,
