@@ -319,8 +319,7 @@ func handlePath(
 		ext == ".mdtxt" || ext == ".mdtext" {
 		render.RenderMarkdown(cfg, w, filename, raw)
 	} else {
-		http.Error(w, "unsupported extension "+ext, 500)
-		return
+		render.RenderText(cfg, w, filename, raw)
 	}
 }
 
